@@ -396,6 +396,129 @@ bool Test()
 	asIScriptEngine* engine;
 	asIScriptModule* mod;
 
+	// test 32bit and 64bit compatibility for function returning a handle
+	// https://www.gamedev.net/forums/topic/710948-crash-on-running-bytecode-from-32bit-on-64bit/
+	{
+		engine = asCreateScriptEngine();
+//		engine->SetEngineProperty(asEP_ALLOW_UNSAFE_REFERENCES, 1);
+//		engine->SetEngineProperty(asEP_ALLOW_IMPLICIT_HANDLE_TYPES, 1);
+//		engine->SetEngineProperty(asEP_BUILD_WITHOUT_LINE_CUES, 1);
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		RegisterStdString(engine);
+
+		CBytecodeStream stream((string("AS_DEBUG/bc_") + (sizeof(void*) == 4 ? "32" : "64")).c_str());
+
+		const char* script =
+			"class TestClass  { \n"
+			"	TestClass @test() { \n"
+			"		return TestClass(); \n"
+			"	} \n"
+			"} \n";
+
+		mod = engine->GetModule(0, asGM_ALWAYS_CREATE); assert(mod != NULL);
+		r = mod->AddScriptSection("main", script); assert(r >= 0);
+		r = mod->Build(); assert(r >= 0);
+		r = mod->SaveByteCode(&stream); assert(r >= 0);
+		mod->Discard();
+
+		asDWORD crc32 = ComputeCRC32(&stream.buffer[0], asUINT(stream.buffer.size()));
+		if (crc32 != 0x6181F907 ) // 0x59DFC69E with BUILD_WITHOUT_LINE_CUES
+		{
+			PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
+			TEST_FAILED;
+		}
+		
+		mod = engine->GetModule(0, asGM_ALWAYS_CREATE); assert(mod != NULL);
+
+		r = mod->LoadByteCode(&stream);
+		if (r < 0)
+			TEST_FAILED;
+		mod->Discard();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+
+		r = engine->ShutDownAndRelease(); assert(r >= 0);
+	}
+
+	// test 32bit and 64bit compatibility when using unsafe references and the bytecode has a local temporary reference to a value type
+	// https://www.gamedev.net/forums/topic/710948-crash-on-running-bytecode-from-32bit-on-64bit/
+	{
+		engine = asCreateScriptEngine();
+		engine->SetEngineProperty(asEP_ALLOW_UNSAFE_REFERENCES, 1);
+		engine->SetEngineProperty(asEP_ALLOW_IMPLICIT_HANDLE_TYPES, 1);
+		engine->SetEngineProperty(asEP_BUILD_WITHOUT_LINE_CUES, 1);
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		RegisterStdString(engine);
+
+		CBytecodeStream stream((string("AS_DEBUG/bc_") + (sizeof(void*) == 4 ? "32" : "64")).c_str());
+
+		const char *script = 
+			"class ProductCoins : Purchase, ProductInfo, Purcheseable, PurchaseUpdate, ProductUILinkImpl { \n"
+			"	uint count; \n"
+			"	string _token; \n"
+			"	ProductCoins(uint c) { \n"
+			"		count = c; \n"
+			"		_sku = \"coins\" + c; \n"
+			"	} \n"
+			"} \n"
+			"mixin class Purchase { \n"
+			"	string _sku; \n"
+			"	bool purchased = false; \n"
+			"	bool _isSubs = false; \n"
+			"	PurchaseData@ info; \n"
+			"} \n"
+			"interface ProductInfo { \n"
+			"} \n"
+			"interface Purcheseable { \n"
+			"} \n"
+			"interface PurchaseUpdate { \n"
+			"} \n"
+			"mixin class ProductUILinkImpl : ProductUILink { \n"
+			"	ProductItem@ _pi; \n"
+			"} \n"
+			"interface ProductUILink { \n"
+			"} \n"
+			"class PurchaseData {} \n"
+			"class ProductItem {} \n"
+			"ProductCoins coins(100); \n";
+
+		mod = engine->GetModule(0, asGM_ALWAYS_CREATE); assert(mod != NULL);
+		r = mod->AddScriptSection("main", script); assert(r >= 0);
+		r = mod->Build(); assert(r >= 0);
+		r = mod->SaveByteCode(&stream); assert(r >= 0);
+		mod->Discard();
+
+		asDWORD crc32 = ComputeCRC32(&stream.buffer[0], asUINT(stream.buffer.size()));
+		if (crc32 != 0xAD6550E)
+		{
+			PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
+			TEST_FAILED;
+		}
+		
+		mod = engine->GetModule(0, asGM_ALWAYS_CREATE); assert(mod != NULL);
+
+		r = mod->LoadByteCode(&stream);
+		if (r < 0)
+			TEST_FAILED;
+		mod->Discard();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+
+		r = engine->ShutDownAndRelease(); assert(r >= 0);
+	}
+
 	// test loading bytecode with function returning string by value
 	// reported by Quentin Cosendey
 	{
@@ -490,12 +613,12 @@ bool Test()
 
 		class CBrokenStream : public asIBinaryStream
 		{
-			int Write(const void* ptr, asUINT size)
+			int Write(const void* /*ptr*/, asUINT /*size*/)
 			{
 				return 0;
 			}
 
-			int Read(void* ptr, asUINT size)
+			int Read(void* /*ptr*/, asUINT /*size*/)
 			{
 				// noop, we don't write anything to ptr at all
 				return 0;
@@ -1521,7 +1644,7 @@ bool Test()
 
 		engine->ShutDownAndRelease();
 
-		if( bout.buffer != "config (56, 0) : Warning : Cannot register template callback without the actual implementation\n" )
+		if( bout.buffer != "config (57, 0) : Warning : Cannot register template callback without the actual implementation\n" )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -1586,6 +1709,7 @@ bool Test()
 					"ep 29 4096\n"
 					"ep 30 10\n"
 					"ep 31 0\n"
+					"ep 32 0\n"
 					"\n"
 					"// Enums\n"
 					"\n"
@@ -2185,26 +2309,26 @@ bool Test()
 		mod->SaveByteCode(&stream2, true);
 
 #ifndef STREAM_TO_FILE
-		if (stream.buffer.size() != 2115)
+		if (stream.buffer.size() != 2104)
 			PRINTF("The saved byte code is not of the expected size. It is %d bytes\n", (int)stream.buffer.size());
 		asUINT zeroes = stream.CountZeroes();
-		if (zeroes != 499)
+		if (zeroes != 495)
 		{
 			PRINTF("The saved byte code contains a different amount of zeroes than the expected. Counted %d\n", zeroes);
 			// Mac OS X PPC has more zeroes, probably due to the bool type being 4 bytes
 		}
 		asDWORD crc32 = ComputeCRC32(&stream.buffer[0], asUINT(stream.buffer.size()));
-		if( crc32 != 0x7983F177)
+		if( crc32 != 0x825F5303)
 		{
 			PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
 			TEST_FAILED;
 		}
 
 		// Without debug info
-		if (stream2.buffer.size() != 1755)
+		if (stream2.buffer.size() != 1744)
 			PRINTF("The saved byte code without debug info is not of the expected size. It is %d bytes\n", (int)stream2.buffer.size());
 		zeroes = stream2.CountZeroes();
-		if (zeroes != 389)
+		if (zeroes != 385)
 			PRINTF("The saved byte code without debug info contains a different amount of zeroes than the expected. Counted %d\n", zeroes);
 #endif
 		// Test loading without releasing the engine first

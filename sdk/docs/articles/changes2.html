@@ -15,7 +15,36 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 
 <h1>AngelScript Change Log</h1>
 
-<h2>Version 2.35.1 WIP - 2021/05/30</h2>
+<h2>Version 2.36.0 WIP - 2021/12/12</h2>
+
+<ul>
+<li>Bug fixes
+<ul>
+<li>Fixed 32bit/64bit compatibility of saved bytecode with unsafe references enabled (Thanks Alexander Orefkov)
+<li>Fixed 32bit/64bit compatibility of saved bytecode in functions returning handles (Thanks Alexander Orefkov)
+<li>Destructor for template value types now get a unique function with correct object type (Thanks Miss)
+</ul>
+<li>Script language
+<ul>
+<li>Improved implicit conversion rules to reduce number of type ambiguity errors for function overloads and ternary operators (Thanks Violet CLM)
+<li>Ternary condition will now return the result as handle if possible to avoid unnecessary copy of objects (Thanks Violet CLM)
+</ul>
+<li>Library
+<ul>
+<li>Added engine property asEP_IGNORE_DUPLICATE_SHARED_INTF to add backwards compatibility with 2.35.0 when scripts include declaration of shared interfaces more than once (Thanks Violet CLM)
+</ul>
+<li>Library interface
+<ul>
+<li>asIScriptContext::GetVarTypeId now supports returning type modifiers to identify reference parameters
+<li>asIScriptContext::GetAddressOfVar now supports returning the address of a reference parameter without dereferencing it
+</ul>
+<li>Add-ons &amp; Samples
+<ul>
+<li>Fixed script array comparison for 64bit integers (Thanks Violet CLM)
+</ul>
+</ul>
+
+<h2>Version 2.35.1 - 2021/09/27</h2>
 
 <ul>
 <li>Bug fixes
@@ -35,6 +64,9 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed assert failure in compiler on implicit conversion between unsigned integer types of different sizes (Thanks Miss)
 <li>Fixed invalid bytecode sequence in initialization lists with value types whose opAssign returns void (Thanks jiandingzhe)
 <li>Fixed registering asBEHAVE_LIST_CONSTRUCT on value type templates (Thanks Suedwest)
+<li>Fixed compiler error in as_symboltable.h on GCC 11 (Thanks shirubax)
+<li>Compiler no longer silently accepts implicit conversion from null handle to object type registered with ASHANDLE if there is no matching implicit constructor (Thanks Patrick Jeeves)
+<li>Fixed problem in native calling convention on arm64 when function returned a reference to a class with asOBJ_APP_CLASS_ALLFLOATS (Thanks Max Waine)
 </ul>
 <li>Library
 <ul>
@@ -42,6 +74,9 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Added config and cmake changes to make the library buildable for Mac M1 (Thanks David Carlier)
 <li>asIScriptModule::CompileFunction now also invokes JIT compiler if set (Thanks gjl)
 <li>asIScriptModule::GetImportedFunctionDeclaration now includes the namespace (Thanks Phong Ba)
+<li>asITypeInfo::GetFactoryByDecl now matches the factory even if the informed function name is different (Thanks Yauheni Akhotnikau)
+<li>Added configuration in as_config.h to support native calling conventions on Android with arm64 (Thanks Alexander Oganesyan)
+<li>Added configuration in as_config.h to support native calling conventions on Nintendo Switch (Thanks Max Waine)
 </ul>
 <li>Script language
 <ul>
@@ -61,12 +96,13 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Added gnuc makefile for asrun sample
 <li>Added generic calling convention bindings for script exception routines add-on (Thanks gjl)
 <li>Fixed problem in script builder that caused it to fail to recognize meta data on members of shared classes (Thanks noizex)
-<li>Script builder can not gather meta data on members of interfaces too
+<li>Script builder can now gather meta data on members of interfaces too
 <li>Fixed WRAP_MFN_PR when used with method without overload in derived class on MSVC (Thanks 1vanK)
 <li>Script builder now removes lines starting with #! to support shebang interpreter directives
 <li>Fixed the samples concurrent and events on Linux (Thanks Dantrell B)
 <li>Fixed WRAP_MFN on gnuc when used within templated functions (Thanks vballDrummer)
 <li>Fixed issue in array::sort with callback that could cause objects in the array to be destroyed by gc (Thanks Miss)
+<li>weakref now has its constructor that takes a handle marked as explicit
 </ul>
 <li>Project
 <ul>

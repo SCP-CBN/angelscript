@@ -279,15 +279,21 @@ void asCCompiler::FinalizeFunction()
 
 	byteCode.ExtractObjectVariableInfo(outFunc);
 
-	// Compile the list of object variables for the exception handler
+	// Compile the list of object variables for the exception handler and the bytecode serialization
 	// Start with the variables allocated on the heap, and then the ones allocated on the stack
 	for( n = 0; n < variableAllocations.GetLength(); n++ )
 	{
-		if( (variableAllocations[n].IsObject() || variableAllocations[n].IsFuncdef()) && !variableAllocations[n].IsReference() )
+		// The exception handler doesn't need to know about references, but the bytecode serialization must adjust the size of the pointer
+		if( (variableAllocations[n].IsObject() || variableAllocations[n].IsFuncdef()) )
 		{
 			if( variableIsOnHeap[n] )
 			{
-				outFunc->scriptData->objVariableTypes.PushLast(variableAllocations[n].GetTypeInfo());
+				// For references, we just store a null pointer so the exception handler can identify that it shouldn't do anything, 
+				// but the bytecode serializer can still understand that it needs to adjust the size of the pointer
+				if (variableAllocations[n].IsReference())
+					outFunc->scriptData->objVariableTypes.PushLast(0);
+				else
+					outFunc->scriptData->objVariableTypes.PushLast(variableAllocations[n].GetTypeInfo());
 				outFunc->scriptData->objVariablePos.PushLast(GetVariableOffset(n));
 			}
 		}
@@ -295,11 +301,17 @@ void asCCompiler::FinalizeFunction()
 	outFunc->scriptData->objVariablesOnHeap = asUINT(outFunc->scriptData->objVariablePos.GetLength());
 	for( n = 0; n < variableAllocations.GetLength(); n++ )
 	{
-		if( (variableAllocations[n].IsObject() || variableAllocations[n].IsFuncdef()) && !variableAllocations[n].IsReference() )
+		// The exception handler doesn't need to know about references, but the bytecode serialization must adjust the size of the pointer
+		if( (variableAllocations[n].IsObject() || variableAllocations[n].IsFuncdef()) )
 		{
 			if( !variableIsOnHeap[n] )
 			{
-				outFunc->scriptData->objVariableTypes.PushLast(variableAllocations[n].GetTypeInfo());
+				// For references, we just store a null pointer so the exception handler can identify that it shouldn't do anything, 
+				// but the bytecode serializer can still understand that it needs to adjust the size of the pointer
+				if (variableAllocations[n].IsReference())
+					outFunc->scriptData->objVariableTypes.PushLast(0);
+				else
+					outFunc->scriptData->objVariableTypes.PushLast(variableAllocations[n].GetTypeInfo());
 				outFunc->scriptData->objVariablePos.PushLast(GetVariableOffset(n));
 			}
 		}
@@ -1520,7 +1532,8 @@ int asCCompiler::PrepareArgument(asCDataType *paramType, asCExprContext *ctx, as
 			else if( ctx->type.dataType.IsNullHandle() )
 			{
 				// Make sure the argument type can support handles (or is itself a handle)
-				if( !dt.SupportHandles() && !dt.IsObjectHandle() )
+				// Don't allow null handle to be converted to an object type of ASHANDLE here, that would require more logic to call the constructor (which should be handled in ImplicitConversion)
+				if( (!dt.SupportHandles() && !dt.IsObjectHandle()) || (dt.GetTypeInfo() && (dt.GetTypeInfo()->GetFlags() & asOBJ_ASHANDLE)) )
 				{
 					asCString str;
 					str.Format(TXT_CANT_IMPLICITLY_CONVERT_s_TO_s, ctx->type.dataType.Format(outFunc->nameSpace).AddressOf(), param.Format(outFunc->nameSpace).AddressOf());
@@ -6104,19 +6117,21 @@ asUINT asCCompiler::ImplicitConvPrimitiveToPrimitive(asCExprContext *ctx, const 
 	// Determine the cost of this conversion
 	asUINT cost = asCC_NO_CONV;
 	if( (to.IsIntegerType() || to.IsUnsignedType()) && (ctx->type.dataType.IsFloatType() || ctx->type.dataType.IsDoubleType()) )
-		cost = asCC_INT_FLOAT_CONV;
+		cost = asCC_FLOAT_TO_INT_CONV;
 	else if ((to.IsFloatType() || to.IsDoubleType()) && (ctx->type.dataType.IsIntegerType() || ctx->type.dataType.IsUnsignedType()))
-		cost = asCC_INT_FLOAT_CONV;
+		cost = asCC_INT_TO_FLOAT_CONV;
 	else if (ctx->type.dataType.IsEnumType() && to.IsIntegerType() && to.GetSizeInMemoryBytes() == ctx->type.dataType.GetSizeInMemoryBytes() )
 		cost = asCC_ENUM_SAME_SIZE_CONV;
 	else if (ctx->type.dataType.IsEnumType() && to.IsIntegerType() && to.GetSizeInMemoryBytes() != ctx->type.dataType.GetSizeInMemoryBytes())
 		cost = asCC_ENUM_DIFF_SIZE_CONV;
 	else if( to.IsUnsignedType() && ctx->type.dataType.IsIntegerType() )
-		cost = asCC_SIGNED_CONV;
+		cost = asCC_SIGNED_TO_UNSIGNED_CONV;
 	else if( to.IsIntegerType() && ctx->type.dataType.IsUnsignedType() )
-		cost = asCC_SIGNED_CONV;
-	else if( to.GetSizeInMemoryBytes() != ctx->type.dataType.GetSizeInMemoryBytes() )
-		cost = asCC_PRIMITIVE_SIZE_CONV;
+		cost = asCC_UNSIGNED_TO_SIGNED_CONV;
+	else if( to.GetSizeInMemoryBytes() > ctx->type.dataType.GetSizeInMemoryBytes() )
+		cost = asCC_PRIMITIVE_SIZE_UP_CONV;
+	else if (to.GetSizeInMemoryBytes() < ctx->type.dataType.GetSizeInMemoryBytes())
+		cost = asCC_PRIMITIVE_SIZE_DOWN_CONV;
 
 	// Start by implicitly converting constant values
 	if( ctx->type.isConstant )
@@ -7250,11 +7265,22 @@ asUINT asCCompiler::ImplicitConvObjectToObject(asCExprContext *ctx, const asCDat
 	asUINT cost = ImplicitConvObjectRef(ctx, to, node, convType, generateCode);
 
 	// If the desired type is an asOBJ_ASHANDLE then we'll assume it is allowed to implicitly
-	// construct the object through any of the available constructors
+	// construct the object through any of the available constructors (except those marked as explicit)
 	if( to.GetTypeInfo() && (to.GetTypeInfo()->flags & asOBJ_ASHANDLE) && to.GetTypeInfo() != ctx->type.dataType.GetTypeInfo() && allowObjectConstruct )
 	{
 		asCArray<int> funcs;
 		funcs = CastToObjectType(to.GetTypeInfo())->beh.constructors;
+
+		// Don't allow use of explicit constructors/factories in implicit conversions
+		if (convType == asIC_IMPLICIT_CONV)
+		{
+			for (asUINT n = 0; n < funcs.GetLength(); n++)
+			{
+				asCScriptFunction* desc = builder->GetFunctionDescription(funcs[n]);
+				if (desc->IsExplicit())
+					funcs.RemoveIndex(n--);
+			}
+		}
 
 		asCArray<asCExprContext *> args;
 		args.PushLast(ctx);
@@ -8737,7 +8763,7 @@ int asCCompiler::CompileCondition(asCScriptNode *expr, asCExprContext *ctx)
 		{
 			Error(TXT_EXPR_MUST_BE_BOOL, cexpr);
 			e.type.SetConstantB(asCDataType::CreatePrimitive(ttBool, true), true);
-		} 
+		}
 		ctype = e.type;
 
 		if( ProcessPropertyGetAccessor(&e, cexpr) < 0)
@@ -8821,12 +8847,18 @@ int asCCompiler::CompileCondition(asCScriptNode *expr, asCExprContext *ctx)
 
 				if (costAtoB < costBtoA && costAtoB != 0xFFFFFFFF)
 				{
-					Dereference(&le, true);
+					if (le.type.dataType.IsObject())
+						Dereference(&le, true);
+					else
+						ConvertToVariable(&le);
 					ImplicitConversion(&le, re.type.dataType, cexpr->next, asIC_IMPLICIT_CONV, true);
 				}
 				else if (costAtoB > costBtoA && costBtoA != 0xFFFFFFFF)
 				{
-					Dereference(&re, true);
+					if( re.type.dataType.IsObject() )
+						Dereference(&re, true);
+					else
+						ConvertToVariable(&re);
 					ImplicitConversion(&re, le.type.dataType, cexpr->next->next, asIC_IMPLICIT_CONV, true);
 				}
 
@@ -8860,6 +8892,17 @@ int asCCompiler::CompileCondition(asCScriptNode *expr, asCExprContext *ctx)
 			if (!re.type.dataType.IsObjectHandle() && le.type.dataType.IsObjectHandle() && le.type.dataType.GetTypeInfo() == re.type.dataType.GetTypeInfo())
 			{
 				asCDataType dt = re.type.dataType;
+				dt.MakeHandle(true);
+				ImplicitConversion(&re, dt, cexpr->next->next, asIC_IMPLICIT_CONV);
+			}
+
+			// If the type of the expressions can be handle, then make them so for efficiency
+			if (le.type.dataType.SupportHandles() && re.type.dataType.SupportHandles())
+			{
+				asCDataType dt = le.type.dataType;
+				dt.MakeHandle(true);
+				ImplicitConversion(&le, dt, cexpr->next, asIC_IMPLICIT_CONV);
+				dt = re.type.dataType;
 				dt.MakeHandle(true);
 				ImplicitConversion(&re, dt, cexpr->next->next, asIC_IMPLICIT_CONV);
 			}
