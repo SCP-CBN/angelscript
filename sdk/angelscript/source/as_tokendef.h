@@ -106,6 +106,7 @@ enum eTokenType
 	ttOpenBracket,         // [
 	ttCloseBracket,        // ]
 	ttAmp,                 // &
+	ttArrow,               // =>
 
 	// Bitwise operators
 	ttBitOr,               // |
@@ -207,6 +208,7 @@ sTokenWord const tokenWords[] =
 	asTokenDef("**"        , ttStarStar),
 	asTokenDef("**="       , ttPowAssign),
 	asTokenDef("="         , ttAssignment),
+	asTokenDef("=>"        , ttArrow),
 	asTokenDef("=="        , ttEqual),
 	asTokenDef("."         , ttDot),
 	asTokenDef("|"         , ttBitOr),

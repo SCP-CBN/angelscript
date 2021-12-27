@@ -5446,7 +5446,8 @@ int asCBuilder::RegisterVirtualProperty(asCScriptNode *node, asCScriptCode *file
 		funcTraits.SetTrait(asTRAIT_PROPERTY, true);
 		funcTraits.SetTrait(asTRAIT_ABSTRACT, isAbstract);
 
-		if (node->firstChild->nodeType == snIdentifier && file->TokenEquals(node->firstChild->tokenPos, node->firstChild->tokenLength, GET_TOKEN))
+		if (node->firstChild->nodeType == snIdentifier && (file->TokenEquals(node->firstChild->tokenPos, node->firstChild->tokenLength, GET_TOKEN)
+			|| node->firstChild->tokenPos == 0 && node->firstChild->tokenLength == 0))
 			name = "get_";
 		else if (node->firstChild->nodeType == snIdentifier && file->TokenEquals(node->firstChild->tokenPos, node->firstChild->tokenLength, SET_TOKEN))
 			name = "set_";

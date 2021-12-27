@@ -6557,7 +6557,7 @@ asUINT asCCompiler::ImplicitConvLambdaToNewFunc(asCExprContext *ctx, asCScriptNo
 		endPos = argNode->tokenPos;
 	}
 
-	asCString params(&script->code[startPos], endPos-startPos-2);
+	asCString params(&script->code[startPos], endPos-startPos-5);
 	params = "void "+autoFuncdefName+"("+params+")";
 	engine->RegisterFuncdef(params.AddressOf());
 
