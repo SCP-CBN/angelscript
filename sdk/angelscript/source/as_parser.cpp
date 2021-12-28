@@ -2775,15 +2775,22 @@ bool asCParser::IsVarDecl()
 	}
 	RewindTo(&t1);
 
-	// A class property decl can be preceded by 'private' or 'protected'
-	for (int k = 0; k < 2; k++)
+	GetToken(&t1);
+	if( t1.type != ttPrivate && t1.type != ttProtected && t1.type != ttSerialize )
+		RewindTo(&t1);
+	else
 	{
-		GetToken(&t1);
-	
-		if (t1.type != ttPrivate && t1.type != ttProtected && t1.type != ttSerialize)
+		sToken t2;
+		GetToken(&t2);
+		if( t1.type == ttSerialize )
 		{
-			RewindTo(&t1);
-			break;
+			if( t2.type != ttPrivate && t2.type != ttProtected )
+				RewindTo(&t2);
+		}
+		else
+		{
+			if( t2.type != ttSerialize )
+				RewindTo(&t2);
 		}
 	}
 
@@ -2883,14 +2890,22 @@ bool asCParser::IsVirtualPropertyDecl()
 		RewindTo(&t1);
 	}
 
-	// A class property decl can be preceded by 'private' or 'protected'
-	for( int k = 0; k < 2; k++ )
+	GetToken(&t1);
+	if( t1.type != ttPrivate && t1.type != ttProtected && t1.type != ttSerialize )
+		RewindTo(&t1);
+	else
 	{
-		GetToken(&t1);
-		if( t1.type != ttPrivate && t1.type != ttProtected && t1.type != ttSerialize )
+		sToken t2;
+		GetToken(&t2);
+		if( t1.type == ttSerialize )
 		{
-			RewindTo(&t1);
-			break;
+			if( t2.type != ttPrivate && t2.type != ttProtected )
+				RewindTo(&t2);
+		}
+		else
+		{
+			if( t2.type != ttSerialize )
+				RewindTo(&t2);
 		}
 	}
 
@@ -4091,18 +4106,18 @@ asCScriptNode *asCParser::ParseDeclaration(bool isClassProp, bool isGlobalVar)
 	// A class property can be preceeded by private
 	if( !isSharedOrExternal )
 	{
-		for( int k = 0; k < 2; k++ )
+		GetToken(&t);
+		RewindTo(&t);
+		auto isAccessSpecifier = [=](const sToken& t) { return (t.type == ttPrivate || t.type == ttProtected) && isClassProp; };
+		auto isSerialize = [=](const sToken& t) { return t.type == ttSerialize && (isClassProp || isGlobalVar); };
+		if( isSerialize(t) || isAccessSpecifier(t) )
 		{
-			GetToken(&t);
-			RewindTo(&t);
-			if( t.type == ttPrivate && isClassProp )
-				node->AddChildLast(ParseToken(ttPrivate));
-			else if( t.type == ttProtected && isClassProp )
-				node->AddChildLast(ParseToken(ttProtected));
-			else if( t.type == ttSerialize && (isClassProp || isGlobalVar) )
-				node->AddChildLast(ParseToken(ttSerialize));
-			else
-				break;
+			node->AddChildLast(ParseToken(t.type));
+			sToken t1;
+			GetToken(&t1);
+			RewindTo(&t1);
+			if( isSerialize(t1) && !isSerialize(t) || isAccessSpecifier(t1) && !isAccessSpecifier(t) )
+				node->AddChildLast(ParseToken(t1.type));
 		}
 	}
 
