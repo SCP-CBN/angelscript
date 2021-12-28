@@ -101,9 +101,9 @@ protected:
 
 #ifndef AS_NO_COMPILER
 	// Statements
-	asCScriptNode *SuperficiallyParseStatementBlock();
+	asCScriptNode *SuperficiallyParseStatementBlock(bool isStatement = true);
 	asCScriptNode *SuperficiallyParseVarInit();
-	asCScriptNode *ParseStatementBlock();
+	asCScriptNode *ParseStatementBlock(bool allowArrow = false);
 	asCScriptNode *ParseStatement();
 	asCScriptNode *ParseExpressionStatement();
 	asCScriptNode *ParseSwitch();
