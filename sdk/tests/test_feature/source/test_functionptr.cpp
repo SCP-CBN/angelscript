@@ -103,7 +103,7 @@ bool Test()
 
 			"void InvokeSimple() { \n"
 			"	//SimpleCallback@ cb = SimpleCallback(Simple); \n" //No error
-			"	SimpleCallback@ cb = SimpleCallback(function() {}); \n" //Error caused by the anonymous function
+			"	SimpleCallback@ cb = SimpleCallback(() => {}); \n" //Error caused by the anonymous function
 
 			"	cb(); \n"
 			"} \n"
@@ -484,7 +484,7 @@ bool Test()
 			"	ErrHere()"
 			"	{"
 			"		@obj = Test();"
-			"		@obj.Callback = function() {};" //<== Assertion failed: file, file ..\..\source\as_bytecode.cpp, line 2082
+			"		@obj.Callback = () => {};" //<== Assertion failed: file, file ..\..\source\as_bytecode.cpp, line 2082
 			"	}"
 			"}"
 
@@ -1138,13 +1138,13 @@ bool Test()
 			"funcdef void CB2(int, int); \n"
 			"bool called = false; \n"
 			"void func() { \n"
-			"   CB0 @cb0 = function() {}; \n"          // The lambda takes on the signature of the funcdef it is assigned to
-			"   CB1 @cb1 = function(a) {}; \n"
-			"   CB2 @cb2 = function(a,b) {}; \n"
-			"   CB0 @a0 = cast<CB0>(function(){}); \n" // or if a cast to a funcdef
-			"   call(function(a) { called = a; }); \n" // or directly passed to a function expecting funcdef
+			"   CB0 @cb0 = () => {}; \n"          // The lambda takes on the signature of the funcdef it is assigned to
+			"   CB1 @cb1 = (a) => {}; \n"
+			"   CB2 @cb2 = (a,b) => {}; \n"
+			"   CB0 @a0 = cast<CB0>(() => {}); \n" // or if a cast to a funcdef
+			"   call((a) => { called = a; }); \n" // or directly passed to a function expecting funcdef
 			"   assert( called ); \n"
-			"   call(function(a) { called = !a; }); \n"
+			"   call((a) => { called = !a; }); \n"
 			"   assert( !called ); \n"
 			"} \n"
 			"void call(CB1@a) { a(true); } \n");
@@ -1173,7 +1173,7 @@ bool Test()
 
 		// Test using lambda functions in asIScriptModule::CompileFunction()
 		asUINT funcCount = mod->GetFunctionCount();
-		r = ExecuteString(engine, "called = false; \n call(function(a) { called = a; }); \n assert( called );\n", mod);
+		r = ExecuteString(engine, "called = false; \n call((a) => { called = a; }); \n assert( called );\n", mod);
 		if( r != asEXECUTION_FINISHED )
 			TEST_FAILED;
 		if( funcCount != mod->GetFunctionCount() )
@@ -1196,7 +1196,7 @@ bool Test()
 		mod2->AddScriptSection("test",
 			"funcdef int CB1(int); \n"
 			"shared int sfunc(int a) { \n"
-			"  CB1 @c = function(a) {return a*a;}; \n"
+			"  CB1 @c = (a) => a*a; \n"
 			"  return c(a); \n"
 			"} \n");
 		r = mod2->Build();
@@ -1229,7 +1229,7 @@ bool Test()
 			TEST_FAILED;
 
 		// Test lambda function in asIScriptModule::CompileGlobalVar()
-		r = mod->CompileGlobalVar("glob", "CB1 @g = function(a) {return a;};", 0);
+		r = mod->CompileGlobalVar("glob", "CB1 @g = (a) => a;", 0);
 		if( r < 0 )
 			TEST_FAILED;
 		r = ExecuteString(engine, "assert( g(4) == 4 );", mod);
@@ -1253,12 +1253,12 @@ bool Test()
 		//-------------------
 		// Test assigning lambda to a funcdef that hasn't been declared
 		bout.buffer = "";
-		r = mod->CompileGlobalVar("glob", "NotDeclared @nd = function(a) {return a;};", 0);
+		r = mod->CompileGlobalVar("glob", "NotDeclared @nd = (a) => a;", 0);
 		if (r >= 0)
 			TEST_FAILED;
 		if (bout.buffer != "glob (1, 1) : Error   : Identifier 'NotDeclared' is not a data type in global namespace\n"
 						   "glob (1, 14) : Info    : Compiling int nd\n"
-						   "glob (1, 28) : Error   : Can't implicitly convert from '$func@const' to 'int&'.\n")
+						   "glob (1, 20) : Error   : Can't implicitly convert from '$func@const' to 'int&'.\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -1269,14 +1269,14 @@ bool Test()
 		mod->AddScriptSection("name", 
 			"funcdef void CB0(); \n"
 			"void func() { \n"
-			"  CB0 @c = function() { error }; \n"
+			"  CB0 @c = () => { error }; \n"
 			"} \n");
 		r = mod->Build();
 		if( r >= 0 )
 			TEST_FAILED;
-		if( bout.buffer != "name (3, 23) : Info    : Compiling void $void func()$0()\n"
-						   "name (3, 31) : Error   : Expected ';'\n"
-						   "name (3, 31) : Error   : Instead found '}'\n" )
+		if( bout.buffer != "name (3, 18) : Info    : Compiling void $void func()$0()\n"
+						   "name (3, 26) : Error   : Expected ';'\n"
+						   "name (3, 26) : Error   : Instead found '}'\n" )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -1284,10 +1284,10 @@ bool Test()
 
 		// Stand-alone lambda should generate appropriate error
 		bout.buffer = "";
-		r = ExecuteString(engine, "function(){};");
+		r = ExecuteString(engine, "() => {};");
 		if( r >= 0 )
 			TEST_FAILED;
-		if( bout.buffer != "ExecuteString (1, 11) : Error   : Invalid expression: stand-alone anonymous function\n" )
+		if( bout.buffer != "ExecuteString (1, 7) : Error   : Invalid expression: stand-alone anonymous function\n" )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -1299,18 +1299,18 @@ bool Test()
 		mod->AddScriptSection("name", 
 			"funcdef void CB1(int); \n"
 			"void func() { \n"
-			"  CB1 @c = function() {}; \n"    // too few arguments
-			"  CB1 @d = function(a,b) {}; \n" // too many arguments
-			"  function(){}(); \n"            // directly calling the lambda is not allowed
+			"  CB1 @c = () => {}; \n"    // too few arguments
+			"  CB1 @d = (a,b) => {}; \n" // too many arguments
+			"  () => {}(); \n"            // directly calling the lambda is not allowed
 			"} \n");
 		r = mod->Build();
 		if( r >= 0 )
 			TEST_FAILED;
 		// TODO: The error messages should be more more explicit
 		if( bout.buffer != "name (2, 1) : Info    : Compiling void func()\n"
-						   "name (3, 23) : Error   : Can't implicitly convert from '$func@const' to 'CB1@&'.\n"
-						   "name (4, 21) : Error   : Can't implicitly convert from '$func@const' to 'CB1@&'.\n"
-						   "name (5, 15) : Error   : No matching signatures to '$func::opCall()'\n" )
+						   "name (3, 18) : Error   : Can't implicitly convert from '$func@const' to 'CB1@&'.\n"
+						   "name (4, 13) : Error   : Can't implicitly convert from '$func@const' to 'CB1@&'.\n"
+						   "name (5, 11) : Error   : No matching signatures to '$func::opCall()'\n" )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -1325,9 +1325,9 @@ bool Test()
 			"void func(A@) {} \n"
 			"void func(B@) {} \n"
 			"void main() { \n"
-			"  func(function(a){}); \n"          // compiler cannot decide
-			"  func(cast<B>(function(a){})); \n" // this one is known
-			"  func(function(float a){}); \n"    // this one is also known
+			"  func((a) => {}); \n"          // compiler cannot decide
+			"  func(cast<B>((a) => {})); \n" // this one is known
+			"  func((float a) => {}); \n"    // this one is also known
 			"} \n");
 		r = mod->Build();
 		if (r >= 0)

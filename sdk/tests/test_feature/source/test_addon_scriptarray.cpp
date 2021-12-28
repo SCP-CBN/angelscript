@@ -549,7 +549,7 @@ bool Test()
 		mod->AddScriptSection("test",
 			"void main() { \n"
 			"  array<int> a = {1,2,3,4,5,6}; \n"
-			"  a.sort(function(a,b) { if( (a & 1) == (b & 1) ) return a < b; else return (a & 1) < (b & 1); }); \n"
+			"  a.sort((a,b) => { if( (a & 1) == (b & 1) ) return a < b; else return (a & 1) < (b & 1); }); \n"
 			"  assert( a == {2,4,6,1,3,5} ); \n"
 			"} \n");
 		r = mod->Build();
@@ -681,10 +681,7 @@ bool Test()
 			"	}; \n"
 			"	print(a[0]); \n"
 			"	print(Test(9)); \n"
-			"	a.sort(function(a, b) { \n"
-			"		//print(a); \n"
-			"		return a.value<b.value; \n"
-			"	}); \n"
+			"	a.sort((a, b) => a.value<b.value); \n"
 			"	print(a[0]); \n"
 			"	print(a[1]); \n"
 			"	print(a[2]); \n"
