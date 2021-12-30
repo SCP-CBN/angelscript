@@ -1618,9 +1618,10 @@ bool asCParser::IsLambda()
 	bool isLambda = false;
 	sToken t;
 	GetToken(&t);
+	
 	bool isFunc = t.type == ttFunction;
 	sToken t1;
-	if (isFunc)
+	if( isFunc )
 		GetToken(&t1);
 	else
 		t1 = t;
@@ -1646,7 +1647,7 @@ bool asCParser::IsLambda()
 	return isLambda;
 }
 
-// BNF:12: LAMBDA        ::= '(' [[TYPE TYPEMOD] IDENTIFIER {',' [TYPE TYPEMOD] IDENTIFIER}] ')' '=>' STATBLOCK_EXPR
+// BNF:12: LAMBDA        ::= ['function] '(' [[TYPE TYPEMOD] IDENTIFIER {',' [TYPE TYPEMOD] IDENTIFIER}] ')' ['=>'] STATBLOCK_EXPR
 asCScriptNode *asCParser::ParseLambda()
 {
 	asCScriptNode *node = CreateNode(snFunction);
