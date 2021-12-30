@@ -86,6 +86,8 @@ enum eScriptNode
 	snVariableAccess,
 	snFuncDef,
 	snVirtualProperty,
+	snVirtPropGet,
+	snVirtPropSet,
 	snNamespace,
 	snMixin,
 	snListPattern,
