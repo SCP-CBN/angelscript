@@ -1499,7 +1499,7 @@ asCScriptNode *asCParser::ParseExprValue()
 	// 'void' is a special expression that doesn't do anything (normally used for skipping output arguments)
 	if( t1.type == ttVoid )
 		node->AddChildLast(ParseToken(ttVoid));
-	else if ( t1.type == ttOpenParenthesis && IsLambda() )
+	else if ( IsLambda() )
 		node->AddChildLast(ParseLambda());
 	else if( IsRealType(t1.type) )
 		node->AddChildLast(ParseConstructCall());
@@ -1618,7 +1618,14 @@ bool asCParser::IsLambda()
 	bool isLambda = false;
 	sToken t;
 	GetToken(&t);
-	if( t.type == ttOpenParenthesis )
+	bool isFunc = t.type == ttFunction;
+	sToken t1;
+	if (isFunc)
+		GetToken(&t1);
+	else
+		t1 = t;
+
+	if( t1.type == ttOpenParenthesis )
 	{
 		sToken t2;
 		GetToken(&t2);
@@ -1626,10 +1633,13 @@ bool asCParser::IsLambda()
 		while( t2.type != ttCloseParenthesis && t2.type != ttEnd )
 			GetToken(&t2);
 
-		// The next token must be a =>
 		GetToken(&t2);
-		if( t2.type == ttArrow )
-			isLambda = true;
+		if( isFunc )
+			// The next token must be a {
+			isLambda = t2.type == ttStartStatementBlock;
+		else
+			// The next token must be a =>
+			isLambda = t2.type == ttArrow;
 	}
 
 	RewindTo(&t);
@@ -1644,6 +1654,8 @@ asCScriptNode *asCParser::ParseLambda()
 
 	sToken t;
 	GetToken(&t);
+	bool isFunc = t.type == ttFunction;
+	if( isFunc ) GetToken(&t);
 	if( t.type != ttOpenParenthesis )
 	{
 		Error(ExpectedToken("("), &t);
@@ -1691,20 +1703,18 @@ asCScriptNode *asCParser::ParseLambda()
 		return node;
 	}
 
-	sToken arrow;
-	GetToken(&arrow);
-	if( arrow.type != ttArrow )
+	if( !isFunc )
 	{
-		Error(ExpectedToken("=>"), &t);
-		return node;
+		GetToken(&t);
+		if ( t.type != ttArrow )
+		{
+			Error(ExpectedToken("=>"), &t);
+			return node;
+		}
+		else
+			RewindTo(&t);
 	}
 
-	GetToken(&t);
-	if( t.type == ttStartStatementBlock )
-		RewindTo(&t);
-	else
-		RewindTo(&arrow);
-	
 	// We should just find the end of the statement block here. The statements
 	// will be parsed on request by the compiler once it starts the compilation.
 	node->AddChildLast(SuperficiallyParseStatementBlock(false));
