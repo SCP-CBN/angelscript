@@ -859,7 +859,7 @@ bool Test()
 		r = engine->RegisterGlobalFunction("void set_TestCallback(Callback@+ cb) property", asFUNCTION(DoNothing), asCALL_GENERIC); assert(r >= 0);
 		r = engine->RegisterGlobalFunction("Callback@ get_TestCallback() property", asFUNCTION(DoNothing), asCALL_GENERIC); assert(r >= 0);
 
-		r = module->AddScriptSection("test", "void main1(){ Callback@ cb = () => 123; TestCallback = cb; }"); assert(r >= 0);
+		r = module->AddScriptSection("test", "void main1(){ Callback@ cb = function() {return 123;}; TestCallback = cb; }"); assert(r >= 0);
 		r = module->Build(); // <== Crash Here
 		if (r >= 0)
 			TEST_FAILED;
@@ -869,17 +869,17 @@ bool Test()
 		if (r >= 0)
 			TEST_FAILED;
 
-		r = module->AddScriptSection("test", "void main3(){ TestCallback = () => 123; }"); assert(r >= 0);
+		r = module->AddScriptSection("test", "void main3(){ TestCallback = function() {return 123;}; }"); assert(r >= 0);
 		r = module->Build(); // <== Crash Here
 		if (r >= 0)
 			TEST_FAILED;
 
-		r = module->AddScriptSection("test", "void main4(){ Callback@ cb = () => 123; @TestCallback = cb; }"); assert(r >= 0);
+		r = module->AddScriptSection("test", "void main4(){ Callback@ cb = function() {return 123;}; @TestCallback = cb; }"); assert(r >= 0);
 		r = module->Build(); 
 		if (r < 0)
 			TEST_FAILED;
 
-		r = module->AddScriptSection("test", "void main5(){ @TestCallback = () => 123; }"); assert(r >= 0);
+		r = module->AddScriptSection("test", "void main5(){ @TestCallback = function(){return 123;}; }"); assert(r >= 0);
 		r = module->Build(); 
 		if (r < 0)
 			TEST_FAILED;
@@ -895,11 +895,11 @@ bool Test()
 		module->Discard();
 
 		if (bout.buffer != "test (1, 1) : Info    : Compiling void main1()\n"
-						   "test (1, 54) : Error   : No appropriate opAssign method found in 'Callback' for value assignment\n"
+						   "test (1, 69) : Error   : No appropriate opAssign method found in 'Callback' for value assignment\n"
 						   "test (1, 1) : Info    : Compiling void main2()\n"
 						   "test (1, 49) : Error   : No appropriate opAssign method found in 'Callback' for value assignment\n"
 						   "test (1, 1) : Info    : Compiling void main3()\n"
-						   "test (1, 33) : Error   : Can't implicitly convert from 'const Callback@&' to 'Callback&'.\n")
+						   "test (1, 41) : Error   : Can't implicitly convert from 'const Callback@&' to 'Callback&'.\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -1018,8 +1018,8 @@ bool Test()
 
 		mod = engine->GetModule("Test", asGM_ALWAYS_CREATE);
 		mod->AddScriptSection("test",
-			"class Jï¿½nsson {} \n"
-			"Jï¿½nsson jï¿½nsson; \n");
+			"class Jönsson {} \n"
+			"Jönsson jönsson; \n");
 		r = mod->Build();
 		if (r < 0)
 			TEST_FAILED;

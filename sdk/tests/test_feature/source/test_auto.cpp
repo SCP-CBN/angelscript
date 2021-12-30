@@ -230,11 +230,11 @@ bool Test()
 	// http://www.gamedev.net/topic/671632-auto-causes-crash-with-anonymous-functions/
 	{
 		const char *script =
-			"auto g_cb2 = () => {}; \n"
-			"auto @g_cb3 = () => {}; \n"
+			"auto g_cb2 = function() {}; \n"
+			"auto @g_cb3 = function() {}; \n"
 			"void test() { \n"
-			" auto cb2 = () => {}; \n"
-			" auto @cb3 = () => {}; \n"
+			" auto cb2 = function() {}; \n"
+			" auto @cb3 = function() {}; \n"
 			"} \n";
 
 		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
