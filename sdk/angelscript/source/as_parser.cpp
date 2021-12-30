@@ -3195,9 +3195,8 @@ asCScriptNode *asCParser::ParseVirtualPropertyDecl(bool isMethod, bool isInterfa
 			if( accessorNode == 0 ) return 0;
 			node->AddChildLast(accessorNode);
 
-			asCScriptNode* idNode = CreateNode(snIdentifier);
+			asCScriptNode* idNode = CreateNode(snVirtPropGet);
 			if( idNode == 0 ) return 0;
-			idNode->tokenPos = idNode->tokenLength = 0;
 			accessorNode->AddChildLast(idNode);
 
 			RewindTo(&t1);
@@ -3235,8 +3234,9 @@ asCScriptNode *asCParser::ParseVirtualPropertyDecl(bool isMethod, bool isInterfa
 
 			node->AddChildLast(accessorNode);
 
-			RewindTo(&t1);
-			accessorNode->AddChildLast(ParseIdentifier());
+			asCScriptNode *funcNode = CreateNode(IdentifierIs(t1, GET_TOKEN) ? snVirtPropGet : snVirtPropSet);
+			if ( funcNode == 0 ) return 0;
+			accessorNode->AddChildLast(funcNode);
 
 			if( isMethod )
 			{

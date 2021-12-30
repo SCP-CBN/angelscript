@@ -5295,10 +5295,9 @@ int asCBuilder::RegisterVirtualProperty(asCScriptNode *node, asCScriptCode *file
 		funcTraits.SetTrait(asTRAIT_PROTECTED, isProtected);
 		funcTraits.SetTrait(asTRAIT_PROPERTY, true);
 
-		if (node->firstChild->nodeType == snIdentifier && (file->TokenEquals(node->firstChild->tokenPos, node->firstChild->tokenLength, GET_TOKEN)
-			|| node->firstChild->tokenPos == 0 && node->firstChild->tokenLength == 0))
+		if (node->firstChild->nodeType == snVirtPropGet)
 			name = "get_";
-		else if (node->firstChild->nodeType == snIdentifier && file->TokenEquals(node->firstChild->tokenPos, node->firstChild->tokenLength, SET_TOKEN))
+		else if (node->firstChild->nodeType == snVirtPropSet)
 			name = "set_";
 		else
 			WriteError(TXT_UNRECOGNIZED_VIRTUAL_PROPERTY_NODE, file, node);
