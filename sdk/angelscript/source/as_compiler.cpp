@@ -13254,7 +13254,7 @@ int asCCompiler::CompileExpressionPostOp(asCScriptNode *node, asCExprContext *ct
 		if( !isOK )
 			return -1;
 	}
-	else if( op == ttOpenParanthesis )
+	else if( op == ttOpenParenthesis )
 	{
 		// TODO: Most of this is already done by CompileFunctionCall(). Can we share the code?
 
