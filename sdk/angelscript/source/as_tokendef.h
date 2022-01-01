@@ -303,6 +303,15 @@ sTokenWord const tokenWords[] =
 	asTokenDef("void"      , ttVoid),
 	asTokenDef("while"     , ttWhile),
 	asTokenDef("xor"       , ttXor),
+
+	asTokenDef("u8"        , ttUInt8),
+	asTokenDef("u16"       , ttUInt16),
+	asTokenDef("u32"       , ttUInt),
+	asTokenDef("u64"       , ttUInt64),
+	asTokenDef("i8"        , ttInt8),
+	asTokenDef("i16"       , ttInt16),
+	asTokenDef("i32"       , ttInt),
+	asTokenDef("i64"       , ttInt64),
 };
 
 const unsigned int numTokenWords = sizeof(tokenWords)/sizeof(sTokenWord);
