@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2021 Andreas Jonsson
+   Copyright (c) 2003-2022 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -147,6 +147,7 @@ enum asEEngineProp
 	asEP_INIT_CALL_STACK_SIZE               = 30,
 	asEP_MAX_CALL_STACK_SIZE                = 31,
 	asEP_IGNORE_DUPLICATE_SHARED_INTF       = 32,
+	asEP_NO_DEBUG_OUTPUT                    = 33,
 
 	asEP_LAST_PROPERTY
 };
@@ -279,14 +280,15 @@ enum asEBehaviours
 // Context states
 enum asEContextState
 {
-	asEXECUTION_FINISHED      = 0,
-	asEXECUTION_SUSPENDED     = 1,
-	asEXECUTION_ABORTED       = 2,
-	asEXECUTION_EXCEPTION     = 3,
-	asEXECUTION_PREPARED      = 4,
-	asEXECUTION_UNINITIALIZED = 5,
-	asEXECUTION_ACTIVE        = 6,
-	asEXECUTION_ERROR         = 7
+	asEXECUTION_FINISHED        = 0,
+	asEXECUTION_SUSPENDED       = 1,
+	asEXECUTION_ABORTED         = 2,
+	asEXECUTION_EXCEPTION       = 3,
+	asEXECUTION_PREPARED        = 4,
+	asEXECUTION_UNINITIALIZED   = 5,
+	asEXECUTION_ACTIVE          = 6,
+	asEXECUTION_ERROR           = 7,
+	asEXECUTION_DESERIALIZATION = 8
 };
 
 // Message types
@@ -970,7 +972,7 @@ public:
 	virtual const char        *GetVarName(asUINT varIndex, asUINT stackLevel = 0) = 0;
 	virtual const char        *GetVarDeclaration(asUINT varIndex, asUINT stackLevel = 0, bool includeNamespace = false) = 0;
 	virtual int                GetVarTypeId(asUINT varIndex, asUINT stackLevel = 0, asETypeModifiers *typeModifiers = 0) = 0;
-	virtual void              *GetAddressOfVar(asUINT varIndex, asUINT stackLevel = 0, bool dontDereference = false) = 0;
+	virtual void              *GetAddressOfVar(asUINT varIndex, asUINT stackLevel = 0, bool dontDereference = false, bool returnAddressOfUnitializedObjects = false) = 0;
 	virtual bool               IsVarInScope(asUINT varIndex, asUINT stackLevel = 0) = 0;
 	virtual int                GetThisTypeId(asUINT stackLevel = 0) = 0;
 	virtual void              *GetThisPointer(asUINT stackLevel = 0) = 0;
@@ -979,6 +981,15 @@ public:
 	// User data
 	virtual void *SetUserData(void *data, asPWORD type = 0) = 0;
 	virtual void *GetUserData(asPWORD type = 0) const = 0;
+
+	// Serialization
+	virtual int StartDeserialization() = 0;
+	virtual int FinishDeserialization() = 0;
+	virtual int PushFunction(asIScriptFunction *func, void *object, int typeId) = 0;
+	virtual int GetStateRegisters(asUINT stackLevel, asIScriptFunction **callingSystemFunction, asIScriptFunction **initialFunction, asDWORD *origStackPointer, asDWORD *argumentsSize, asQWORD *valueRegister, void **objectRegister, asITypeInfo **objectTypeRegister) = 0;
+	virtual int GetCallStateRegisters(asUINT stackLevel, asDWORD *stackFramePointer, asIScriptFunction **currentFunction, asDWORD *programPointer, asDWORD *stackPointer, asDWORD *stackIndex) = 0;
+	virtual int SetStateRegisters(asUINT stackLevel, asIScriptFunction *callingSystemFunction, asIScriptFunction *initialFunction, asDWORD origStackPointer, asDWORD argumentsSize, asQWORD valueRegister, void *objectRegister, asITypeInfo *objectTypeRegister) = 0;
+	virtual int SetCallStateRegisters(asUINT stackLevel, asDWORD stackFramePointer, asIScriptFunction *currentFunction, asDWORD programPointer, asDWORD stackPointer, asDWORD stackIndex) = 0;
 
 protected:
 	virtual ~asIScriptContext() {}

@@ -424,7 +424,7 @@ bool Test()
 		mod->Discard();
 
 		asDWORD crc32 = ComputeCRC32(&stream.buffer[0], asUINT(stream.buffer.size()));
-		if (crc32 != 0x6181F907 ) // 0x59DFC69E with BUILD_WITHOUT_LINE_CUES
+		if (crc32 != 0x90659FB)
 		{
 			PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
 			TEST_FAILED;
@@ -497,12 +497,12 @@ bool Test()
 		mod->Discard();
 
 		asDWORD crc32 = ComputeCRC32(&stream.buffer[0], asUINT(stream.buffer.size()));
-		if (crc32 != 0xAD6550E)
+		if (crc32 != 0xDBF6790A)
 		{
 			PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
 			TEST_FAILED;
 		}
-		
+
 		mod = engine->GetModule(0, asGM_ALWAYS_CREATE); assert(mod != NULL);
 
 		r = mod->LoadByteCode(&stream);
@@ -744,9 +744,9 @@ bool Test()
 			TEST_FAILED;
 		
 		if (bout.buffer != " (0, 0) : Error   : Shared type 'Test1' doesn't match the original declaration in other module\n"
-						   " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 90\n"
+						   " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 92\n"
 						   " (0, 0) : Error   : Shared type 'Test1' doesn't match the original declaration in other module\n"
-						   " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 90\n") 
+						   " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 92\n") 
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -1347,7 +1347,7 @@ bool Test()
 		else
 		{
 			asDWORD crc32 = ComputeCRC32(&bc.buffer[0], asUINT(bc.buffer.size()));
-			if (crc32 != 0x3DC90FE)
+			if (crc32 != 0xA3398BDD)
 			{
 				PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
 				TEST_FAILED;
@@ -1402,7 +1402,7 @@ bool Test()
 			TEST_FAILED;
 
 		asDWORD crc32 = ComputeCRC32(&bc.buffer[0], asUINT(bc.buffer.size()));
-		if (crc32 != 0x1636A342)
+		if (crc32 != 0xAA94673B)
 		{
 			PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
 			TEST_FAILED;
@@ -1464,7 +1464,7 @@ bool Test()
 			TEST_FAILED;
 
 		asDWORD crc = ComputeCRC32(&bc.buffer[0], asUINT(bc.buffer.size()));
-		if (crc != 710615252u)
+		if (crc != 2406682749u)
 		{
 			PRINTF("Wrong checksum. Got %u\n", crc);
 			TEST_FAILED;
@@ -1644,7 +1644,7 @@ bool Test()
 
 		engine->ShutDownAndRelease();
 
-		if( bout.buffer != "config (57, 0) : Warning : Cannot register template callback without the actual implementation\n" )
+		if( bout.buffer != "config (58, 0) : Warning : Cannot register template callback without the actual implementation\n" )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -1710,6 +1710,7 @@ bool Test()
 					"ep 30 10\n"
 					"ep 31 0\n"
 					"ep 32 0\n"
+					"ep 33 0\n"
 					"\n"
 					"// Enums\n"
 					"\n"
@@ -1917,7 +1918,7 @@ bool Test()
 			TEST_FAILED;
 		
 		if( bout.buffer != " (0, 0) : Error   : Template type 'typeof' doesn't exist\n"
-						   " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 120\n" )
+						   " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 158\n" )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -2309,26 +2310,26 @@ bool Test()
 		mod->SaveByteCode(&stream2, true);
 
 #ifndef STREAM_TO_FILE
-		if (stream.buffer.size() != 2104)
+		if (stream.buffer.size() != 2085)
 			PRINTF("The saved byte code is not of the expected size. It is %d bytes\n", (int)stream.buffer.size());
 		asUINT zeroes = stream.CountZeroes();
-		if (zeroes != 495)
+		if (zeroes != 523)
 		{
 			PRINTF("The saved byte code contains a different amount of zeroes than the expected. Counted %d\n", zeroes);
 			// Mac OS X PPC has more zeroes, probably due to the bool type being 4 bytes
 		}
 		asDWORD crc32 = ComputeCRC32(&stream.buffer[0], asUINT(stream.buffer.size()));
-		if( crc32 != 0x825F5303)
+		if( crc32 != 0x29E2A52D)
 		{
 			PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
 			TEST_FAILED;
 		}
 
 		// Without debug info
-		if (stream2.buffer.size() != 1744)
+		if (stream2.buffer.size() != 1741)
 			PRINTF("The saved byte code without debug info is not of the expected size. It is %d bytes\n", (int)stream2.buffer.size());
 		zeroes = stream2.CountZeroes();
-		if (zeroes != 385)
+		if (zeroes != 383)
 			PRINTF("The saved byte code without debug info contains a different amount of zeroes than the expected. Counted %d\n", zeroes);
 #endif
 		// Test loading without releasing the engine first
@@ -2399,7 +2400,7 @@ bool Test()
 		mod->SaveByteCode(&streamTiny, true);
 		engine->Release();
 
-		asBYTE expected[] = {0x01,0x00,0x00,0x00,0x00,0x00,0x01,0x66,0x02,0x66,0x00,0x40,0x50,0x00,0x00,0x01,0x00,0x00,0x00,0x02,0x3F,0x0A,0x00,0x00,0x01,0x72,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+		asBYTE expected[] = {0x01,0x00,0x00,0x00,0x00,0x00,0x01,0x66,0x02,0x66,0x00,0x40,0x50,0x00,0x00,0x01,0x00,0x00,0x00,0x02,0x3F,0x0A,0x00,0x00,0x00,0x01,0x72,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 		bool match = true;
 		for( asUINT n = 0; n < streamTiny.buffer.size(); n++ )
 			if( streamTiny.buffer[n] != expected[n] )
@@ -3236,7 +3237,7 @@ bool Test()
 			TEST_FAILED;
 
 		if( bout.buffer != " (0, 0) : Error   : Attempting to instantiate invalid template type 'tmpl<int>'\n"
-			               " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 111\n" )
+			               " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 104\n" )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;

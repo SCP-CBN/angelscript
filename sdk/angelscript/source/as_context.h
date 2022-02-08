@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2021 Andreas Jonsson
+   Copyright (c) 2003-2022 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -117,7 +117,7 @@ public:
 	const char        *GetVarName(asUINT varIndex, asUINT stackLevel);
 	const char        *GetVarDeclaration(asUINT varIndex, asUINT stackLevel, bool includeNamespace);
 	int                GetVarTypeId(asUINT varIndex, asUINT stackLevel, asETypeModifiers *typeModifiers);
-	void              *GetAddressOfVar(asUINT varIndex, asUINT stackLevel, bool dontDereference);
+	void              *GetAddressOfVar(asUINT varIndex, asUINT stackLevel, bool dontDereference, bool returnAddressOfUnitializedObjects);
 	bool               IsVarInScope(asUINT varIndex, asUINT stackLevel);
 	int                GetThisTypeId(asUINT stackLevel);
     void              *GetThisPointer(asUINT stackLevel);
@@ -127,10 +127,21 @@ public:
 	void *SetUserData(void *data, asPWORD type);
 	void *GetUserData(asPWORD type) const;
 
+	// Serialization
+	int StartDeserialization();
+	int FinishDeserialization();
+	int PushFunction(asIScriptFunction *func, void *obj, int typeId);
+	int GetStateRegisters(asUINT stackLevel, asIScriptFunction** callingSystemFunction, asIScriptFunction** initialFunction, asDWORD* origStackPointer, asDWORD* argumentsSize, asQWORD* valueRegister, void** objectRegister, asITypeInfo** objectTypeRegister);
+	int GetCallStateRegisters(asUINT stackLevel, asDWORD* stackFramePointer, asIScriptFunction** currentFunction, asDWORD* programPointer, asDWORD* stackPointer, asDWORD* stackIndex);
+	int SetStateRegisters(asUINT stackLevel, asIScriptFunction* callingSystemFunction, asIScriptFunction* initialFunction, asDWORD origStackPointer, asDWORD argumentsSize, asQWORD valueRegister, void* objectRegister, asITypeInfo* objectTypeRegister);
+	int SetCallStateRegisters(asUINT stackLevel, asDWORD stackFramePointer, asIScriptFunction* currentFunction, asDWORD programPointer, asDWORD stackPointer, asDWORD stackIndex);
+
 public:
 	// Internal public functions
 	asCContext(asCScriptEngine *engine, bool holdRef);
 	virtual ~asCContext();
+	asCScriptFunction *GetRealFunc(asCScriptFunction * m_currentFunction, void ** objType);
+	int DeserializeProgramPointer(int programPointer, asCScriptFunction * currentFunction, void * object, asDWORD *& p, asCScriptFunction *& realFunc);
 
 //protected:
 	friend class asCScriptEngine;
@@ -157,7 +168,12 @@ public:
 	void CallInterfaceMethod(asCScriptFunction *func);
 	void PrepareScriptFunction();
 
+	void SetProgramPointer();
+
 	bool ReserveStackSpace(asUINT size);
+
+	asDWORD *DeserializeStackPointer(asDWORD);
+	asDWORD  SerializeStackPointer(asDWORD *) const;
 
 	void SetInternalException(const char *descr, bool allowCatch = true);
 	bool FindExceptionTryCatch();

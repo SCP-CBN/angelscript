@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2021 Andreas Jonsson
+   Copyright (c) 2003-2022 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -447,6 +447,10 @@ int asCScriptEngine::SetEngineProperty(asEEngineProp property, asPWORD value)
 		ep.ignoreDuplicateSharedIntf = value ? true : false;
 		break;
 
+	case asEP_NO_DEBUG_OUTPUT:
+		ep.noDebugOutput = value ? true : false;
+		break;
+
 	default:
 		return asINVALID_ARG;
 	}
@@ -555,6 +559,9 @@ asPWORD asCScriptEngine::GetEngineProperty(asEEngineProp property) const
 	case asEP_IGNORE_DUPLICATE_SHARED_INTF:
 		return ep.ignoreDuplicateSharedIntf;
 
+	case asEP_NO_DEBUG_OUTPUT:
+		return ep.noDebugOutput;
+
 	default:
 		return 0;
 	}
@@ -625,6 +632,7 @@ asCScriptEngine::asCScriptEngine()
 		ep.initCallStackSize             = 10;        // 10 levels of calls
 		ep.maxCallStackSize              = 0;         // 0 = no limit
 		ep.ignoreDuplicateSharedIntf     = false;
+		ep.noDebugOutput                 = false;
 	}
 
 	gc.engine = this;
@@ -3928,7 +3936,6 @@ asCScriptFunction *asCScriptEngine::GenerateTemplateFactoryStub(asCObjectType *t
 		func->inOutFlags[p-1] = factory->inOutFlags[p];
 		func->defaultArgs[p-1] = factory->defaultArgs[p] ? asNEW(asCString)(*factory->defaultArgs[p]) : 0;
 	}
-	func->scriptData->objVariablesOnHeap = 0;
 
 	// Generate the bytecode for the factory stub
 	asUINT bcLength = asBCTypeSize[asBCInfo[asBC_OBJTYPE].type] +
